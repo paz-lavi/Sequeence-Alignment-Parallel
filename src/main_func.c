@@ -11,7 +11,7 @@
 #include "main_func.h"
 #include "mpi.h"
 #include <string.h>
-void master(int argc, char* argv[]){
+void master(int argc, char *argv[]) {
 
 	if (argc != 2) {
 		printf(argc < 2 ? "Data file is required!" :    //handle input error
@@ -43,7 +43,7 @@ void master(int argc, char* argv[]){
 //
 //	}
 //
-	calculateParallel(res ,fd);
+	calculateParallel(res, fd);
 
 	// write results to output.txt
 	writeResultsToFile(res, fd.sizeOfSeq2Arr);
@@ -60,94 +60,103 @@ void master(int argc, char* argv[]){
 
 }
 
-void slave(MPI_Status status){
+void slave(MPI_Status status) {
 	//receive num of sequences of  to slave
 	struct file_data fd;
 	struct ms_results **res;
-	int i ,j =0;
-	float weigth[4];
-	printf("%d\n" , j++);
-			MPI_Recv(&fd.sizeOfSeq2Arr, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD, &status);
-			printf("%d\n" , j++);
-			fd.seq1 = myCharArrCalloc(SEQ1_MAX_LENGTH+1);
-			MPI_Recv(fd.seq1, SEQ1_MAX_LENGTH + 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD , &status);
-			printf("%d\n" , j++);
-			fd.arrOfSeq2 = myStringArrCalloc(fd.sizeOfSeq2Arr );
-			for(i =0 ; i < fd.sizeOfSeq2Arr ; i++){
-				fd.arrOfSeq2[i] = myCharArrCalloc(SEQ2_MAX_LENGTH +1);
-				MPI_Recv(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH +1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD , &status);
-				printf("%d ,%d \n" , j++ , i);}
-			MPI_Recv(&weigth, 4, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD , &status);
-			printf("%d\n" , j++);
-			fd.w1 = weigth[0];fd.w2 = weigth[1];fd.w3 = weigth[2];fd.w4 = weigth[3];
-
-res =   resultArrayMalloc(fd.sizeOfSeq2Arr);
-			startCalculate(res,fd,SLAVE);
-
-
-			for(i = 0 ; i < fd.sizeOfSeq2Arr ; i++){
-			MPI_Send(&res[i]->score, 1, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD);
-			MPI_Send(&res[i]->offset, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
-			MPI_Send(&res[i]->k, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
-
-}
-			printf("all send back to master\n");
-			free(fd.seq1);
-					for(i = 0 ; i < fd.sizeOfSeq2Arr ; i++)
-					free(fd.arrOfSeq2[i]);
-					free(fd.arrOfSeq2);
-}
-
-
-void calculateParallel(struct ms_results **res,struct file_data fd){
 	int i;
-	float weigth[] = {fd.w1 ,fd.w2,fd.w3,fd.w4};
-	MPI_Status status;
-	struct ms_results **temp_res = resultArrayMalloc(fd.sizeOfSeq2Arr);;
-	//send num of sequences of  to slave
-			MPI_Send(&fd.sizeOfSeq2Arr, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD);
-			MPI_Send(fd.seq1, SEQ1_MAX_LENGTH + 1, MPI_CHAR, SLAVE, 0, MPI_COMM_WORLD);
+	float weigth[4];
 
-			for(i =0 ; i < fd.sizeOfSeq2Arr ; i++)
-				MPI_Send(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH + 1, MPI_CHAR, SLAVE, 0, MPI_COMM_WORLD);
-			MPI_Send(&weigth, 4, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD);
+	MPI_Recv(&fd.sizeOfSeq2Arr, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD, &status);
 
-			startCalculate(res,fd,MASTER);
+	fd.seq1 = myCharArrCalloc(SEQ1_MAX_LENGTH + 1);
+	MPI_Recv(fd.seq1, SEQ1_MAX_LENGTH + 1, MPI_CHAR, MASTER, 0, MPI_COMM_WORLD,
+			&status);
 
-			for(i =0 ; i < fd.sizeOfSeq2Arr ; i++){
-				MPI_Recv(&temp_res[i]->score, 1, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD, &status);
-				MPI_Recv(&temp_res[i]->offset, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD, &status);
-				MPI_Recv(&temp_res[i]->k, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD, &status);
+	fd.arrOfSeq2 = myStringArrCalloc(fd.sizeOfSeq2Arr);
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+		fd.arrOfSeq2[i] = myCharArrCalloc(SEQ2_MAX_LENGTH + 1);
+		MPI_Recv(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH + 1, MPI_CHAR, MASTER, 0,
+				MPI_COMM_WORLD, &status);
+	}
+	MPI_Recv(&weigth, 4, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD, &status);
 
-			}
-			printf("master recived all\n");
-			for(i =0 ; i < fd.sizeOfSeq2Arr ; i++){
-				if(temp_res[i]->score > res[i]->score){
-					res[i]->score = temp_res[i]->score;
-					res[i]->offset = temp_res[i]->offset;
-					res[i]->k = temp_res[i]->k;
-				}
-			}
-free(temp_res);
+	fd.w1 = weigth[0];
+	fd.w2 = weigth[1];
+	fd.w3 = weigth[2];
+	fd.w4 = weigth[3];
+
+	res = resultArrayMalloc(fd.sizeOfSeq2Arr);
+	startCalculate(res, fd, SLAVE);
+
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+		MPI_Send(&res[i]->score, 1, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD);
+		MPI_Send(&res[i]->offset, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
+		MPI_Send(&res[i]->k, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
+
+	}
+	printf("all send back to master\n");
+	free(fd.seq1);
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++)
+		free(fd.arrOfSeq2[i]);
+	free(fd.arrOfSeq2);
 }
 
-void startCalculate(struct ms_results **res,struct file_data fd, int proc){
+void calculateParallel(struct ms_results **res, struct file_data fd) {
+	int i;
+	float weigth[] = { fd.w1, fd.w2, fd.w3, fd.w4 };
+	MPI_Status status;
+	struct ms_results **temp_res = resultArrayMalloc(fd.sizeOfSeq2Arr);
+	;
+	//send num of sequences of  to slave
+	MPI_Send(&fd.sizeOfSeq2Arr, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD);
+	MPI_Send(fd.seq1, SEQ1_MAX_LENGTH + 1, MPI_CHAR, SLAVE, 0, MPI_COMM_WORLD);
+
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++)
+		MPI_Send(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH + 1, MPI_CHAR, SLAVE, 0,
+				MPI_COMM_WORLD);
+	MPI_Send(&weigth, 4, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD);
+
+	startCalculate(res, fd, MASTER);
+
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+		MPI_Recv(&temp_res[i]->score, 1, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD,
+				&status);
+		MPI_Recv(&temp_res[i]->offset, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD,
+				&status);
+		MPI_Recv(&temp_res[i]->k, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD,
+				&status);
+
+	}
+	printf("master recived all\n");
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+		if (temp_res[i]->score > res[i]->score) {
+			res[i]->score = temp_res[i]->score;
+			res[i]->offset = temp_res[i]->offset;
+			res[i]->k = temp_res[i]->k;
+		}
+	}
+	free(temp_res);
+}
+
+void startCalculate(struct ms_results **res, struct file_data fd, int proc) {
 	char *mk = myCharArrCalloc(SEQ2_MAX_LENGTH + 1);
-int i ,start , end;
-		//find best score for each sequence
-			for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
-				 start = proc == MASTER ? 1 : strlen((fd.arrOfSeq2[i]))/2;
-				 end = proc == MASTER ? strlen(fd.arrOfSeq2[i])/2 +1 : strlen(fd.arrOfSeq2[i]);
-				res[i]->k = -1;
-				res[i]->offset = -1;
-				res[i]->score = LENGTH_ERROR;  //reset values
-				findBest(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk , start , end ); // calculate
+	int i, start, end;
+	//find best score for each sequence
+	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+		start = proc == MASTER ? 1 : strlen((fd.arrOfSeq2[i])) / 2;
+		end = proc == MASTER ?
+				strlen(fd.arrOfSeq2[i]) / 2 + 1 : strlen(fd.arrOfSeq2[i]);
+		res[i]->k = -1;
+		res[i]->offset = -1;
+		res[i]->score = LENGTH_ERROR;  //reset values
+		//findBest(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
+		findBestOpenMP(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
+		printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
+				res[i]->score, res[i]->offset, res[i]->k); // print result to console
 
-				printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
-						res[i]->score, res[i]->offset, res[i]->k); // print result to console
-
-			}
-			free(mk);
+	}
+	free(mk);
 }
 
 //reading the file. the the return to caller through fd
@@ -221,7 +230,6 @@ void readLine(FILE *file, char **str, int max_size) {
 	(*str)[i] = '\0'; //set end  of string;
 
 }
-
 
 // write result to output.txt file
 void writeResultsToFile(struct ms_results **res, int size) {
