@@ -10,8 +10,7 @@
 #include <stdio.h>
 #include "helpers.h"
 #define OUTPUT "output.txt"
-#define SEQ1_MAX_LENGTH 3000
-#define SEQ2_MAX_LENGTH 2000
+
 
 void master(int argc, char* argv[]);
 void slave();

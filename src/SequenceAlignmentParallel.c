@@ -7,6 +7,7 @@
  Description : Hello MPI World in C 
  ============================================================================
  */
+
 #include <stdio.h>
 #include <string.h>
 #include "mpi.h"
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
 	//int dest;     /* rank of receiver */
 //	int tag=0;    /* tag for messages */
 	//char message[100];        /* storage for message */
-	MPI_Status status; /* return status for receive */
+	//MPI_Status status; /* return status for receive */
 
 	/* start up MPI */
 
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]) {
 	if (my_rank == MASTER) {
 		master(argc, argv);
 	} else if (my_rank == SLAVE) {
-		slave(status);
+		slave();
 	}
 
 	/* shut down MPI */

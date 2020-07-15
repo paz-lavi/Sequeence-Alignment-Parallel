@@ -9,6 +9,7 @@
 #include "helpers.h"
 #include "comparition.h"
 #include "main_func.h"
+#include "cuda.h"
 #include "mpi.h"
 #include <string.h>
 void master(int argc, char *argv[]) {
@@ -60,12 +61,13 @@ void master(int argc, char *argv[]) {
 
 }
 
-void slave(MPI_Status status) {
+void slave() {
 	//receive num of sequences of  to slave
 	struct file_data fd;
 	struct ms_results **res;
 	int i;
-	float weigth[4];
+	double weigth[4];
+	MPI_Status status;
 
 	MPI_Recv(&fd.sizeOfSeq2Arr, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD, &status);
 
@@ -77,9 +79,9 @@ void slave(MPI_Status status) {
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
 		fd.arrOfSeq2[i] = myCharArrCalloc(SEQ2_MAX_LENGTH + 1);
 		MPI_Recv(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH + 1, MPI_CHAR, MASTER, 0,
-				MPI_COMM_WORLD, &status);
+		MPI_COMM_WORLD, &status);
 	}
-	MPI_Recv(&weigth, 4, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD, &status);
+	MPI_Recv(&weigth, 4, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD, &status);
 
 	fd.w1 = weigth[0];
 	fd.w2 = weigth[1];
@@ -90,7 +92,7 @@ void slave(MPI_Status status) {
 	startCalculate(res, fd, SLAVE);
 
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
-		MPI_Send(&res[i]->score, 1, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD);
+		MPI_Send(&res[i]->score, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD);
 		MPI_Send(&res[i]->offset, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
 		MPI_Send(&res[i]->k, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
 
@@ -104,7 +106,7 @@ void slave(MPI_Status status) {
 
 void calculateParallel(struct ms_results **res, struct file_data fd) {
 	int i;
-	float weigth[] = { fd.w1, fd.w2, fd.w3, fd.w4 };
+	double weigth[] = { fd.w1, fd.w2, fd.w3, fd.w4 };
 	MPI_Status status;
 	struct ms_results **temp_res = resultArrayMalloc(fd.sizeOfSeq2Arr);
 	;
@@ -114,13 +116,13 @@ void calculateParallel(struct ms_results **res, struct file_data fd) {
 
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++)
 		MPI_Send(fd.arrOfSeq2[i], SEQ2_MAX_LENGTH + 1, MPI_CHAR, SLAVE, 0,
-				MPI_COMM_WORLD);
-	MPI_Send(&weigth, 4, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD);
+		MPI_COMM_WORLD);
+	MPI_Send(&weigth, 4, MPI_DOUBLE, SLAVE, 0, MPI_COMM_WORLD);
 
 	startCalculate(res, fd, MASTER);
 
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
-		MPI_Recv(&temp_res[i]->score, 1, MPI_FLOAT, SLAVE, 0, MPI_COMM_WORLD,
+		MPI_Recv(&temp_res[i]->score, 1, MPI_DOUBLE, SLAVE, 0, MPI_COMM_WORLD,
 				&status);
 		MPI_Recv(&temp_res[i]->offset, 1, MPI_INT, SLAVE, 0, MPI_COMM_WORLD,
 				&status);
@@ -150,8 +152,14 @@ void startCalculate(struct ms_results **res, struct file_data fd, int proc) {
 		res[i]->k = -1;
 		res[i]->offset = -1;
 		res[i]->score = LENGTH_ERROR;  //reset values
-		//findBest(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
-		findBestOpenMP(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
+		if (proc == MASTER)
+			//findBest(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
+			findBestOpenMP(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start,
+					end); // calculate
+		else
+			//printf("hi\n");
+			findBestCuda(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start,
+					end);
 		printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
 				res[i]->score, res[i]->offset, res[i]->k); // print result to console
 
@@ -169,8 +177,8 @@ void initDataFromFile(char *filename, struct file_data *fd) {
 	}
 
 	int i, numOfSeq;
-	float w1, w2, w3, w4; // define weight vars
-	if (fscanf(file, "%f%f%f%f\n", &w1, &w2, &w3, &w4) != 4) { // read first line into weight vars
+	double w1, w2, w3, w4; // define weight vars
+	if (fscanf(file, "%lf%lf%lf%lf\n", &w1, &w2, &w3, &w4) != 4) { // read first line into weight vars
 		fprintf(stderr, "row %d is not represented correctly!",
 		__LINE__);
 		exit(1);

@@ -28,8 +28,9 @@ void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 	int max_offset = l1 - l2;
 	 char** t_mk;
 	 struct ms_results **temp_res;
+
 #pragma omp parallel
-	{float f;
+	{double d;
 		const int tid = omp_get_thread_num();
 		const int nthreads = omp_get_num_threads();
 		//printf("tid = %d\n",tid);
@@ -41,9 +42,11 @@ void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 		#pragma omp single
 		{
 			t_mk = myStringArrCalloc(nthreads);
-			temp_res = resultArrayMalloc((end - start + 1));
+			temp_res = resultArrayMalloc((nthreads));
+		//temp_res = resultArrayMalloc((end - start + 1));
+
 			//space allocation
-			printf("single tid = %d\n",tid);
+		//	printf("single tid = %d\n",tid);
 
 		}
 
@@ -59,9 +62,9 @@ void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 
 			for (int i = 0; i < max_offset - 1; i++) {   //all offsets options
 
-				f = compereSeq1AndSeq2(seq1, &t_mk[tid], fd, i); // compare seq1 and current MS(j) and offset = i
-				if (f > temp_res[tid]->score) {
-					temp_res[tid]->score = f;
+				d = compereSeq1AndSeq2(seq1, &t_mk[tid], fd, i); // compare seq1 and current MS(j) and offset = i
+				if (d > temp_res[tid]->score) {
+					temp_res[tid]->score = d;
 					temp_res[tid]->offset = i;
 					temp_res[tid]->k = j;
 				}
@@ -120,7 +123,7 @@ struct ms_results* findBest(char **seq1, char **seq2, struct file_data fd,
 }
 
 //compare 2 sequence. return score as float
-float compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
+double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
 		int offset) {
 
 	int l1 = strlen(*seq1);
@@ -219,7 +222,7 @@ char semiConservativeGroups(char a, char b) {
 }
 
 // calculate the score
-float calculateSimilarity(int numberOfStars, int numberOfColons,
+double calculateSimilarity(int numberOfStars, int numberOfColons,
 		int numberOfPoints, int numberOfSpaces, struct file_data fd) {
 	return (fd.w1 * numberOfStars) - (fd.w2 * numberOfColons)
 			- (fd.w3 * numberOfPoints) - (fd.w4 * numberOfSpaces);

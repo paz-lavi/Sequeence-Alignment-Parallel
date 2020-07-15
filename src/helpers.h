@@ -9,14 +9,16 @@
 #define HELPERS_H_
 #define MASTER 0
 #define SLAVE 1
+#define SEQ1_MAX_LENGTH 3000
+#define SEQ2_MAX_LENGTH 2000
 struct ms_results {
-	float score;
+	double score;
 	int k;
 	int offset;
 };
 
 struct file_data {
-	float w1, w2, w3, w4;
+	double w1, w2, w3, w4;
 	char *seq1;
 	char **arrOfSeq2;
 	int sizeOfSeq2Arr;

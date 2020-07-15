@@ -15,12 +15,12 @@ void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 		struct ms_results *res, char **mk, int start, int end);
 struct ms_results* findBest(char **seq1, char **seq2, struct file_data fd,
 		struct ms_results *res, char **mk ,int start , int end);
-float compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
+double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
 		int offset);
 char compareTowChars(char a, char b);
 char conservativeGroups(char a, char b);
 char semiConservativeGroups(char a, char b);
-float calculateSimilarity(int numberOfStars, int numberOfColons,
+double calculateSimilarity(int numberOfStars, int numberOfColons,
 		int numberOfPoints, int numberOfSpaces, struct file_data fd);
 void mutantSequence(char **from, char **des, int i);
 #endif /* COMPARITION_H_ */
