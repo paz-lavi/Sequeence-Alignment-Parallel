@@ -71,23 +71,23 @@ __device__ char compareTowCharsCuda(char a, char b) {
 }
 
 
-__device__ //compare 2 sequence. return score as float
-double compereSeq1AndSeq2Cuda(char **seq1, char **seq2,
+__device__ //compare 2 sequence. return score as double
+double compereSeq1AndSeq2Cuda(char *seq1, char *seq2,
 		int offset ,double w1,double w2,double w3,double w4	) {
 
-	int l1 = _strlen(*seq1);
-	int l2 = _strlen(*seq2);
+	int l1 = _strlen(seq1);
+	int l2 = _strlen(seq2);
 
 	//printf("l2 #2 = %d\n",l2);
-	//printf("hi from compereSeq1AndSeq2\n");
+//	printf("%s\n",seq2);
 
 	int numberOfStars = 0, numberOfColons = 0, numberOfPoints = 0,
 			numberOfSpaces = 0, i; //init var for calculate the score
 
 	if (l1 == l2) {
 		for (i = 0; i < l1; i++) {
-			switch ((*seq2)[i] == '-' ?
-					'-' : compareTowCharsCuda((*seq2)[i], (*seq1)[i])) { //in case seq1 and seq2 have the same length
+			switch ((seq2)[i] == '-' ?
+					'-' : compareTowCharsCuda((seq2)[i], (seq1)[i])) { //in case seq1 and seq2 have the same length
 			case ' ':
 				numberOfSpaces++;
 				break;
@@ -112,9 +112,9 @@ double compereSeq1AndSeq2Cuda(char **seq1, char **seq2,
 		} else {
 
 			for (i = 0; i < l2; i++) {
-				switch ((*seq2)[i] == '-' ?
+				switch ((seq2)[i] == '-' ?
 						'-' :
-						compareTowCharsCuda((*seq2)[i], (*seq1)[offset + i])) { // get sing for each pair of chars with specific offset
+						compareTowCharsCuda((seq2)[i], (seq1)[offset + i])) { // get sing for each pair of chars with specific offset
 				case ' ':
 					numberOfSpaces++;
 					break;
@@ -141,35 +141,38 @@ double compereSeq1AndSeq2Cuda(char **seq1, char **seq2,
 
 
 __device__ void mutantSequenceCuda(char *from, char *des, int i) {
-int j = 1000 , k=0 ;
-printf("kkkk\n");
+int j = 0 , k=0 ;
+//printf("from - %s\n",from);
 do{
 if(k == i){
-printf("**\n");
-//des[j++] = '-';
-printf("****\n");}
+//printf("**\n");
+des[j++] = '-';
+//printf("****\n");
+}
 
-//des[j++] ='-'; //from[k];
-printf("%c\n",from[k++]);
-}while(j-- != 0);
+des[j++] =from[k];
+//printf("j = %d - from = %c , des = %c\n" ,j, from[k],des[j++]);
+}while(from[k++]!= '\0');
 
 }
 
 
-__global__ void addCalculateKernel(char **seq1, char **seq2, char** t_mk,  struct ms_results **temp_res,
-double w1,double w2,double w3,double w4 ,int max_offset	) {
+__global__ void addCalculateKernel(char *seq1, char *seq2, char** t_mk,  struct ms_results **temp_res,
+double w1,double w2,double w3,double w4 ,int max_offset	,double* scores, int* offsetsArr , int* kArr ,int start) {
 	int tid = threadIdx.x;
 	double d;
-printf("ppppppp\n");
-mutantSequenceCuda(*seq2, t_mk[tid], tid);
-printf("%s\n",t_mk[tid]);
+	scores[tid] = -999999999;
+					offsetsArr[tid] = -1;
+					kArr[tid] = -1;
+char t[SEQ2_MAX_LENGTH +1];
+t_mk[tid] = t;
+mutantSequenceCuda(seq2, t, tid);
 	for (int i = 0; i < max_offset - 1; i++) {   //all offsets options
-
-				d = compereSeq1AndSeq2Cuda(seq1, &t_mk[tid], i , w1,w2,w3,w4); // compare seq1 and current MS(j) and offset = i
-				if (d > temp_res[tid]->score) {
-					temp_res[tid]->score = d;
-					temp_res[tid]->offset = i;
-					temp_res[tid]->k = tid;
+				d = compereSeq1AndSeq2Cuda(seq1, t, i , w1,w2,w3,w4); // compare seq1 and current MS(j) and offset = i
+				if (d > scores[tid]) {
+					scores[tid] = d;
+					offsetsArr[tid] = i;
+					kArr[tid] = start + tid;
 				}
 			}
 			
@@ -179,21 +182,24 @@ printf("%s\n",t_mk[tid]);
 
 
 
-__global__ void findBest( struct ms_results* final_res,	 struct ms_results** temp_res ,int size ){
-					printf("wtf\n");
+__global__ void findBest( struct ms_results* final_res,	 struct ms_results** temp_res ,int size ,double* scores, int* offsetsArr , int* kArr){
 					final_res->score = -1;
 					final_res->offset = -1;
 					final_res->k = -1;
 					int i;
+					printf("size = %d",size);
 					for( i = 0 ; i < size;i++){
+					//printf("score = %lf , offset = %d , k = %d \n",scores[i],offsetsArr[i],kArr[i]);
 					if(
-					final_res->score >temp_res[i]->score ){
+					final_res->score < scores[i]){
 					
-					final_res->score = (temp_res[i])->score ;
-					final_res->offset = (temp_res[i])->offset;
-					final_res->k = (temp_res[i])->k;
+					(final_res->score) = scores[i] ;
+					(final_res->offset) = offsetsArr[i];
+					(final_res->k) = kArr[i];
+					printf("toppppp i = %d\n",i);
 					}
 					}
+					printf("cuda best score = %lf , offset = %d ,k = %d\n",final_res->score,final_res->offset,final_res->k);
 					
 }
 
@@ -204,11 +210,13 @@ __global__ void findBest( struct ms_results* final_res,	 struct ms_results** tem
 
 void findBestCuda(char **seq1, char **seq2, struct file_data fd,
 		struct ms_results *res, char **mk, int start, int end){
-		printf("cuda 1\n");
 	 char** t_mk ;
-	 char* s1 ,*s2;
+	 char* s1=0 ,*s2=0;
 		 struct ms_results **temp_res;
 		 struct ms_results *final_res;
+		 
+		double* scores; 
+		int* offsetsArr , *kArr;
 int i;
 int l1 = strlen(*seq1);
 	int l2 = strlen(*seq2);
@@ -216,49 +224,59 @@ int l1 = strlen(*seq1);
 	
 	cudaError_t cudaStatus;
 
-		printf("cuda 2\n");
 
 //seq2 total size is maximum 2000 -> this part size will be max 1000 less then the maximum threads number
 int size = end-start +1;
 		// Choose which GPU to run on, change this on a multi-GPU system.
 		cudaStatus = cudaSetDevice(0);
 
-		cudaStatus = cudaMalloc((void**) &t_mk, size * sizeof(char*));
+		cudaStatus = cudaMalloc((void***) &t_mk, size * sizeof(char*));
 		cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "addKernel launch failed: %s\n",
 				cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
-		
-		cudaStatus = cudaMalloc((void**) &temp_res, size * sizeof(char*));
-		cudaStatus = cudaMalloc((void**) &final_res,  sizeof(char*));
+		cudaStatus = cudaMalloc( (void**)&scores, size * sizeof(double));
+		cudaStatus = cudaMalloc( (void**)&offsetsArr, size * sizeof(int));
+		cudaStatus = cudaMalloc( (void**)&kArr, size * sizeof(int));
+		cudaStatus = cudaMalloc((void***) &temp_res, size * sizeof(struct ms_results*));
+		cudaStatus = cudaMalloc((void**) &final_res,  sizeof(struct ms_results*));
 
-			cudaStatus = cudaMalloc((void**) &s1, SEQ1_MAX_LENGTH * sizeof(char**));
-				cudaStatus = cudaMalloc((void**) &s2, SEQ2_MAX_LENGTH * sizeof(char**));
-						printf("cuda 3\n");
+		cudaStatus = cudaMalloc( (void**)&s1, SEQ1_MAX_LENGTH * sizeof(char));
+		cudaStatus = cudaMalloc( (void**)&s2, SEQ2_MAX_LENGTH * sizeof(char));
 				
-						//cudaStatus = cudaMalloc((void**) &t_mk[0], (l2+1) * sizeof(char));
+						//cudaStatus = cudaMalloc(t_mk[0], (l2+1) * sizeof(char));
 				
 				for( i = 0 ; i < size; i++){
 			//	printf("%d\n",i);
-		cudaStatus = cudaMalloc(t_mk[i], (l2+1) * sizeof(char));
+			//temp_res[i];
+			//cudaStatus = cudaMalloc((void**) &(temp_res[i]),  sizeof(struct ms_results));
+		//cudaStatus = cudaMalloc((void**)&t_mk[i], SEQ2_MAX_LENGTH *sizeof(char));
 		//printf("%d\n",i);
 				}
-						printf("cuda 4\n");
 				
 			// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(s1, *seq1, SEQ1_MAX_LENGTH * sizeof(char*),
+	cudaStatus = cudaMemcpy(s1, *seq1, SEQ1_MAX_LENGTH * sizeof(char),
 			cudaMemcpyHostToDevice);
-					printf("cuda 5\n");
-			
-			cudaStatus = cudaMemcpy(s2, *seq2, SEQ2_MAX_LENGTH * sizeof(char*),
+					
+			cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "copy seq1 failed: %s\n",
+				cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
+			cudaStatus = cudaMemcpy(s2, *seq2, SEQ2_MAX_LENGTH * sizeof(char),
 			cudaMemcpyHostToDevice);
-					printf("cuda 6\n");
+			cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "copy seq2 failed: %s\n",
+				cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
 			
-			
-	//	printf("%s\n",s2);
-addCalculateKernel<<<1, size>>>(&s1,&s2,t_mk,temp_res,fd.w1,fd.w2,fd.w3,fd.w4,max_offset);
+		printf("%lf,%lf,%lf,%lf,\n",fd.w1,fd.w2,fd.w3,fd.w4);
+addCalculateKernel<<<1, size>>>(s1,s2,t_mk,temp_res,fd.w1,fd.w2,fd.w3,fd.w4,max_offset ,scores,offsetsArr , kArr,start);
 // Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -267,7 +285,6 @@ addCalculateKernel<<<1, size>>>(&s1,&s2,t_mk,temp_res,fd.w1,fd.w2,fd.w3,fd.w4,ma
 		goto Error;
 	}
 
-		printf("cuda 7\n");
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
@@ -277,7 +294,7 @@ addCalculateKernel<<<1, size>>>(&s1,&s2,t_mk,temp_res,fd.w1,fd.w2,fd.w3,fd.w4,ma
 		goto Error;
 	}
 	
-findBest<<<1, 1>>>(final_res,temp_res , size);
+findBest<<<1, 1>>>(final_res,temp_res , size ,scores,offsetsArr , kArr);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -294,31 +311,54 @@ findBest<<<1, 1>>>(final_res,temp_res , size);
 		goto Error;
 	}
 
+
+int temp* = (int*)malloc(sizeof(int));
+
+printf("try to copy\n");
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(res, final_res,  sizeof(struct ms_results),
+	cudaStatus = cudaMemcpy(&res->score, &final_res->score,  sizeof(double),
 			cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
+			if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy  1 failed!\n %s\n",cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
-for(int i = 0 ; i < size; i++)
-cudaFree(t_mk[i]);
+	
+			cudaStatus = cudaMemcpy(temp, &final_res->k,  sizeof(int),
+			cudaMemcpyDeviceToHost);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy 3  failed!\n %s\n",cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
+			cudaStatus = cudaMemcpy(temp, &final_res->offset,  sizeof(int),
+			cudaMemcpyDeviceToHost);
+			if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy 4 failed!\n %s\n",cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
+	printf("copy ok\n");
+						printf("after copy best score = %lf , offset = %d ,k = %d\n",res->score,res->offset,res->k);
+	
+
 			cudaFree(t_mk);
 			cudaFree(s1);
 			cudaFree(s2);
 			cudaFree(temp_res);
 			cudaFree(final_res);
+			cudaFree(kArr);
+			cudaFree(offsetsArr);
+			cudaFree(scores);
 
 
 
 	Error: 
-	for(int i = 0 ; i < size; i++)
-cudaFree(t_mk[i]);
 cudaFree(t_mk);
 			cudaFree(s1);
 			cudaFree(s2);
 			cudaFree(temp_res);
 cudaFree(final_res);
+	cudaFree(kArr);
+			cudaFree(offsetsArr);
+			cudaFree(scores);
 
 
 	
