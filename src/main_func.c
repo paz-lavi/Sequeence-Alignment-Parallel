@@ -12,6 +12,7 @@
 #include "cuda.h"
 #include "mpi.h"
 #include <string.h>
+
 void master(int argc, char *argv[]) {
 
 	if (argc != 2) {
@@ -89,9 +90,11 @@ void slave() {
 	fd.w4 = weigth[3];
 
 	res = resultArrayMalloc(fd.sizeOfSeq2Arr);
-	startCalculate(res, fd, SLAVE);
-
+	//startCalculate(res, fd, SLAVE);
+	cudaCalculeteAll(fd,res,SLAVE);
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
+//		printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
+//						res[i]->score, res[i]->offset, res[i]->k);
 		MPI_Send(&res[i]->score, 1, MPI_DOUBLE, MASTER, 0, MPI_COMM_WORLD);
 		MPI_Send(&res[i]->offset, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
 		MPI_Send(&res[i]->k, 1, MPI_INT, MASTER, 0, MPI_COMM_WORLD);
@@ -144,6 +147,7 @@ void calculateParallel(struct ms_results **res, struct file_data fd) {
 void startCalculate(struct ms_results **res, struct file_data fd, int proc) {
 	char *mk = myCharArrCalloc(SEQ2_MAX_LENGTH + 1);
 	int i, start, end;
+	char** s1 = myStringArrCalloc(fd.sizeOfSeq2Arr);
 	//find best score for each sequence
 	for (i = 0; i < fd.sizeOfSeq2Arr; i++) {
 		start = proc == MASTER ? 1 : strlen((fd.arrOfSeq2[i])) / 2;
@@ -156,12 +160,15 @@ void startCalculate(struct ms_results **res, struct file_data fd, int proc) {
 			//findBest(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start, end); // calculate
 			findBestOpenMP(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start,
 					end); // calculate
-		else
+		else{
 			//printf("hi\n");
-			findBestCuda(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start,
-					end);
-		printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
-				res[i]->score, res[i]->offset, res[i]->k); // print result to console
+
+//
+//			findBestCuda(&fd.seq1, &fd.arrOfSeq2[i], fd, res[i], &mk, start,
+//					end,s1[i]);
+		}
+//		printf("seq2 # %d :  score = %f , offset = %d , k = %d \n", i,
+//				res[i]->score, res[i]->offset, res[i]->k); // print result to console
 
 	}
 	free(mk);
