@@ -13,4 +13,4 @@ run:
 	mpiexec -np 2 ./SequeenceAlignmentParallel input.txt
 
 runOn2:
-	mpiexec -np 2 -machinefile  mf  -map-by  node  ./SequeenceAlignmentParallel input.txt
+	mpiexec -np 2 -machinefile  /home/linuxu/hostsIP.txt -map-by node ./SequeenceAlignmentParallel input.txt
