@@ -14,7 +14,7 @@
 void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 		struct ms_results *res, char **mk, int start, int end);
 struct ms_results* findBest(char **seq1, char **seq2, struct file_data fd,
-		struct ms_results *res, char **mk ,int start , int end);
+		struct ms_results *res, char **mk, int start, int end);
 double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
 		int offset);
 char compareTowChars(char a, char b);

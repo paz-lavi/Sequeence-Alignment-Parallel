@@ -14,18 +14,12 @@
 #include "helpers.h"
 #include "main_func.h"
 #include "comparition.h"
-#include <time.h>
 
 #define MAX_PROC 2
-int main(int argc, char *argv[]) {
-	clock_t begin = clock();
+int main(int argc, char *argv[])
+{
 	int my_rank; /* rank of process */
 	int numOfProcs; /* number of processes */
-	//int source;   /* rank of sender */
-	//int dest;     /* rank of receiver */
-//	int tag=0;    /* tag for messages */
-	//char message[100];        /* storage for message */
-	//MPI_Status status; /* return status for receive */
 
 	/* start up MPI */
 
@@ -37,26 +31,27 @@ int main(int argc, char *argv[]) {
 	/* find out number of processes */
 	MPI_Comm_size(MPI_COMM_WORLD, &numOfProcs);
 
-	if (numOfProcs != MAX_PROC) {
+	if (numOfProcs != MAX_PROC)
+	{
 		printf("Program requires %d processes\n", MAX_PROC);
 		MPI_Finalize();
 		MPI_Abort(MPI_COMM_WORLD, 1);
 	}
 
-	if (my_rank == MASTER) {
-		master(argc, argv);
-	} else if (my_rank == SLAVE) {
-		slave();
+	if (my_rank == MASTER)
+	{
+		master(argc, argv); // start master work
+	}
+	else if (my_rank == SLAVE)
+	{
+		slave(); // start slave work
 	}
 
 	/* shut down MPI */
 	MPI_Finalize();
 
-	if (my_rank == MASTER) {
-		clock_t end = clock();
-		double time_spent = (double) (end - begin) / CLOCKS_PER_SEC;
-		printf("runtime = %f", time_spent);
-	}
+
+
 	return 0;
 }
 
