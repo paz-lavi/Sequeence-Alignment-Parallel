@@ -111,37 +111,37 @@ void findBestOpenMP(char **seq1, char **seq2, struct file_data fd,
 	}
 }
 
-///*This function checks all options (offset, MS (k)) and finds the best result*/
-//struct ms_results* findBest(char **seq1, char **seq2, struct file_data fd,
-//		struct ms_results *res, char **mk, int start, int end)
-//{
-//	float f;
-//	int i, j;
-//	int l1 = strlen(*seq1);
-//	int l2 = strlen(*seq2);
-//	int max_offset = l1 - l2;
-//
-//	for (j = start; j < end; j++)
-//	{  //all MS(k) options
-//
-//		mutantSequence(seq2, mk, j);
-//
-//		for (i = 0; i < max_offset - 1; i++)
-//		{   //all offsets options
-//
-//			f = compereSeq1AndSeq2(seq1, mk, fd, i); // compare seq1 and current MS(j) and offset = i
-//			if (f > res->score)
-//			{
-//				res->score = f;
-//				res->offset = i;
-//				res->k = j;
-//			}
-//		}
-//		resetArray(l2 + 1, mk);  //set all char at mk to '\0'
-//	}
-//
-//	return res;
-//}
+// /*This function checks all options (offset, MS (k)) and finds the best result*/
+// struct ms_results* findBest(char **seq1, char **seq2, struct file_data fd,
+// 		struct ms_results *res, char **mk, int start, int end)
+// {
+// 	float f;
+// 	int i, j;
+// 	int l1 = strlen(*seq1);
+// 	int l2 = strlen(*seq2);
+// 	int max_offset = l1 - l2;
+
+// 	for (j = start; j < end; j++)
+// 	{  //all MS(k) options
+
+// 		mutantSequence(seq2, mk, j);
+
+// 		for (i = 0; i < max_offset - 1; i++)
+// 		{   //all offsets options
+
+// 			f = compereSeq1AndSeq2(seq1, mk, fd, i); // compare seq1 and current MS(j) and offset = i
+// 			if (f > res->score)
+// 			{
+// 				res->score = f;
+// 				res->offset = i;
+// 				res->k = j;
+// 			}
+// 		}
+// 		resetArray(l2 + 1, mk);  //set all char at mk to '\0'
+// 	}
+
+// 	return res;
+// }
 
 /*compare 2 sequence. return score as double*/
 double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
@@ -160,8 +160,7 @@ double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
 	{
 		for (i = 0; i < l1; i++)
 		{
-			switch ((*seq2)[i] == HYPHEN ?
-					HYPHEN : compareTowChars((*seq2)[i], (*seq1)[i]))  /* get sing for each pair of chars */
+			switch ( compareTowChars((*seq2)[i], (*seq1)[i]))  /* get sing for each pair of chars */
 			{
 			case ' ':
 				numberOfSpaces++;
@@ -229,7 +228,6 @@ char compareTowChars(char a, char b)
 {
 	if (a == b)
 	{
-		//printf("*\n");
 		return '*';
 	}
 	else
