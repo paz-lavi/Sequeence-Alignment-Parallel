@@ -223,7 +223,7 @@ char semiConservativeGroups(char a, char b)
 	{
 		if ((strchr(SEMI_CONSERVATIVE_GROUPS[i], (int) a) != NULL)
 				&& (strchr(SEMI_CONSERVATIVE_GROUPS[i], (int) b) != NULL))
-			return ':';
+			return '.';
 	}
 	return ' ';
 }

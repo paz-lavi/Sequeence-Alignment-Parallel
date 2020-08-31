@@ -28,7 +28,7 @@ __device__ int _strlen(const char *str)
 	int i = 0;
 	while (str[i++] != '\0')
 		;
-	return i;
+	return i-1;
 }
 
 /* calculate the score*/
@@ -52,7 +52,7 @@ __device__ char semiConservativeGroupsCuda(char a, char b)
 	{
 		if ((_strchr(SEMI_CONSERVATIVE_GROUPS[i], a))
 				&& (_strchr(SEMI_CONSERVATIVE_GROUPS[i], b)))
-			return ':';
+			return '.';
 	}
 	return ' ';
 }

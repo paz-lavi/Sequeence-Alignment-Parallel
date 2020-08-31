@@ -168,6 +168,7 @@ void calculateParallel(struct ms_results **res, struct file_data fd)
 			res[i]->offset = temp_res[i]->offset;
 			res[i]->k = temp_res[i]->k;
 		}
+		
 	}
 
 	/*Release memory */
