@@ -15,7 +15,7 @@ void master(int argc, char *argv[]);
 void slave();
 void initDataFromFile(char *filename, struct file_data *fd);
 void readLine(FILE *file, char **str, int max_size);
-void writeResultsToFile(struct ms_results **res, int size);
+void writeResultsToFile(struct ms_results **res, int size,double start_time);
 void startCalculateOpenMP(struct ms_results **res, struct file_data fd, int proc);
 void calculateParallel(struct ms_results **res, struct file_data fd);
 

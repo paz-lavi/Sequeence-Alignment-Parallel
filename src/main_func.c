@@ -41,7 +41,7 @@ void master(int argc, char *argv[])
 	calculateParallel(res, fd);
 
 	/* write results to output.txt*/
-	writeResultsToFile(res, fd.sizeOfSeq2Arr);
+	writeResultsToFile(res, fd.sizeOfSeq2Arr,start);
 
 	/*free all allocated vars*/
 
@@ -54,8 +54,8 @@ void master(int argc, char *argv[])
 	}
 	free(res);
 	free(fd.arrOfSeq2);
-	double end = MPI_Wtime();
-	printf("running time = %lf", end - start);
+	printf("The program has finished running successfully.\nSee the output.txt file for results\n");
+
 }
 /* Slave program */
 void slave()
@@ -284,8 +284,11 @@ void readLine(FILE *file, char **str, int max_size)
 }
 
 /* write result to output.txt file */
-void writeResultsToFile(struct ms_results **res, int size)
+void writeResultsToFile(struct ms_results **res, int size , double start_time)
 {
+
+		double end = MPI_Wtime();
+	double running_time =  end - start_time;
 	FILE *file = fopen(OUTPUT, "w"); /*open output.txt : override if file exist else create it  */
 	if (!file)
 	{
@@ -307,5 +310,8 @@ void writeResultsToFile(struct ms_results **res, int size)
 				res[i]->k);
 
 	}
+	//write running time
+		fprintf(file, "Total Running Time: %lf\n\n" ,running_time);
+
 	fclose(file);
 }
