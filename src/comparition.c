@@ -163,8 +163,7 @@ double compereSeq1AndSeq2(char **seq1, char **seq2, struct file_data fd,
 
 			for (i = 0; i < l2; i++)
 			{
-				switch ((*seq2)[i] == HYPHEN ?
-						HYPHEN :
+				switch (
 						compareTowChars((*seq2)[i], (*seq1)[offset + i])) /* get sing for each pair of chars with specific offset*/
 				{
 				case ' ':

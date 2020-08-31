@@ -133,8 +133,7 @@ __device__ double compereSeq1AndSeq2Cuda(char *seq1, char *seq2, int offset,
 
 			for (i = 0; i < l2; i++)
 			{
-				switch ((seq2)[i] == '-' ?
-						'-' : compareTowCharsCuda((seq2)[i], (seq1)[offset + i]))
+				switch ( compareTowCharsCuda((seq2)[i], (seq1)[offset + i]))
 				/* get sing for each pair of chars with specific offset*/
 				{
 				case ' ':
